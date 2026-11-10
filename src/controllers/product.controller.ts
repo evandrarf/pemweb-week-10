@@ -77,3 +77,52 @@ export async function createProduct(req: Request, res: Response): Promise<void> 
     });
   }
 }
+
+// PUT /products atau PUT /products/:id - Mengupdate data produk yang sudah ada
+export async function updateProduct(req: Request, res: Response): Promise<void> {
+  const rawId = req.body.id ?? req.params.id;
+  const id = Number(rawId);
+  const { name, price } = req.body;
+
+  if (!rawId || isNaN(id) || id <= 0) {
+    res.status(400).json({ message: 'ID produk wajib diisi dan berupa angka valid' });
+    return;
+  }
+
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ message: 'Nama produk wajib diisi' });
+    return;
+  }
+
+  if (price === undefined || price === null || isNaN(Number(price)) || Number(price) < 0) {
+    res.status(400).json({ message: 'Harga produk wajib berupa angka positif' });
+    return;
+  }
+
+  try {
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      res.status(404).json({ message: 'produk tidak ditemukan' });
+      return;
+    }
+
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: {
+        name: name.trim(),
+        price: parseInt(price, 10),
+      },
+    });
+
+    res.status(200).json(updatedProduct);
+  } catch (error) {
+    console.error('Error in updateProduct:', error);
+    res.status(500).json({
+      message: 'Terjadi kesalahan pada server',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}

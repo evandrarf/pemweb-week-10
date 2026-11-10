@@ -1,66 +1,52 @@
 import type { Request, Response } from 'express';
+import prisma from '../lib/prisma';
 
-export interface Product {
-  id: number;
-  name: string;
-  price: number;
+// GET /products - Menampilkan seluruh data produk dari PostgreSQL
+export async function getProducts(_req: Request, res: Response): Promise<void> {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: { id: 'asc' },
+    });
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error in getProducts:', error);
+    res.status(500).json({
+      message: 'Terjadi kesalahan pada server',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }
 
-export const initialProducts: Product[] = [
-  { id: 1, name: 'Buku', price: 15000 },
-  { id: 2, name: 'Pulpen', price: 5000 },
-];
-
-export let products: Product[] = [...initialProducts];
-
-export function resetProducts(): void {
-  products = [...initialProducts];
-}
-
-export function getProducts(_req: Request, res: Response): void {
-  res.status(200).json(products);
-}
-
-export function getProductById(req: Request, res: Response): void {
+// GET /products/:id - Menampilkan detail produk berdasarkan ID
+export async function getProductById(req: Request, res: Response): Promise<void> {
   const id = Number(req.params.id);
 
-  if (isNaN(id)) {
-    res.status(400).json({ message: 'ID produk harus berupa angka' });
+  if (isNaN(id) || id <= 0) {
+    res.status(400).json({ message: 'ID produk tidak valid' });
     return;
   }
 
-  const product = products.find((item) => item.id === id);
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+    });
 
-  if (!product) {
-    res.status(404).json({ message: 'Produk tidak ditemukan' });
-    return;
+    if (!product) {
+      res.status(404).json({ message: 'produk tidak ditemukan' });
+      return;
+    }
+
+    res.status(200).json(product);
+  } catch (error) {
+    console.error('Error in getProductById:', error);
+    res.status(500).json({
+      message: 'Terjadi kesalahan pada server',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
-
-  res.status(200).json(product);
 }
 
-export function createProduct(req: Request, res: Response): void {
-  const { name, price } = req.body;
-
-  if (!name || typeof name !== 'string' || name.trim() === '') {
-    res.status(400).json({ message: 'Nama produk wajib diisi' });
-    return;
-  }
-
-  if (price === undefined || price === null || isNaN(Number(price))) {
-    res.status(400).json({ message: 'Harga produk harus berupa angka' });
-    return;
-  }
-
-  const newId = products.length > 0 ? Math.max(...products.map((p) => p.id)) + 1 : 1;
-
-  const newProduct: Product = {
-    id: newId,
-    name: name.trim(),
-    price: Number(price),
-  };
-
-  products.push(newProduct);
-
-  res.status(201).json(newProduct);
+// Placeholder createProduct untuk Tahap 3
+export async function createProduct(req: Request, res: Response): Promise<void> {
+  res.status(501).json({ message: 'Endpoint POST /products akan diimplementasikan di Tahap 3' });
 }

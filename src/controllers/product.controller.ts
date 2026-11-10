@@ -126,3 +126,40 @@ export async function updateProduct(req: Request, res: Response): Promise<void> 
     });
   }
 }
+
+// DELETE /products/:id atau DELETE /products - Menghapus data produk berdasarkan ID
+export async function deleteProduct(req: Request, res: Response): Promise<void> {
+  const rawId = req.params.id ?? req.body?.id;
+  const id = Number(rawId);
+
+  if (!rawId || isNaN(id) || id <= 0) {
+    res.status(400).json({ message: 'ID produk wajib diisi dan berupa angka valid' });
+    return;
+  }
+
+  try {
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      res.status(404).json({ message: 'produk tidak ditemukan' });
+      return;
+    }
+
+    const deletedProduct = await prisma.product.delete({
+      where: { id },
+    });
+
+    res.status(200).json({
+      message: 'Produk berhasil dihapus',
+      product: deletedProduct,
+    });
+  } catch (error) {
+    console.error('Error in deleteProduct:', error);
+    res.status(500).json({
+      message: 'Terjadi kesalahan pada server',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
